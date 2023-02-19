@@ -1,0 +1,62 @@
+package {{packageName}};
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+import {{packageProxyName}}.*;
+
+import javax.xml.ws.Holder;
+
+@RestController
+@RequestMapping(
+        path = "{{routePath}}",
+        method = RequestMethod.POST,
+        produces = "application/json",
+        consumes = "application/json"
+)
+public class {{className}}RestApi {
+
+    private {{className}} soap;
+
+    public {{className}}RestApi({{className}} soap) {
+        this.soap = soap;
+    }
+
+{{#operations}}
+    @RequestMapping("{{path}}")
+    public ResponseEntity<{{output.clazz}}> {{name}}(@RequestBody {{input.clazz}} request) {
+    {{^multipleResponses}}
+        return ResponseEntity.ok(soap.{{name}}({{#inputs}}request.{{name}}{{^last}}, {{/last}}{{/inputs}}));
+    {{/multipleResponses}}
+    {{#multipleResponses}}
+        {{#outputs}}
+        Holder<{{clazz}}> {{name}} = new Holder<>();
+        {{/outputs}}
+        soap.{{name}}({{#inputs}}request.{{name}}, {{/inputs}}{{#outputs}}{{name}}{{^last}}, {{/last}}{{/outputs}});
+        {{output.clazz}} response = new {{output.clazz}}();
+        {{#outputs}}
+        response.{{name}} = {{name}}.value;
+        {{/outputs}}
+        return ResponseEntity.ok(response);
+    {{/multipleResponses}}
+    }
+
+    {{#multipleResponses}}
+    static class {{output.clazz}} {
+    {{#outputs}}
+        public {{clazz}} {{name}};
+    {{/outputs}}
+    }
+    {{/multipleResponses}}
+
+    static class {{input.clazz}} {
+    {{#inputs}}
+        public {{clazz}} {{name}};
+    {{/inputs}}
+    }
+
+{{/operations}}
+}
